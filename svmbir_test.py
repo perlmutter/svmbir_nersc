@@ -2,28 +2,12 @@ import os
 import time
 import argparse
 import numpy as np
-# from scipy.fft import fft, ifft, fftfreq, fftshift
-# import tomopy
-# import astra
-# import dxchange
 import svmbir
 
 if os.environ.get('CLIB') =='CMD_LINE':
     import svmbir.interface_py_c as ci
 else:
     import svmbir.interface_cy_c as ci
-
-def run_projector(img_size,num_angles,num_threads=None):
-    print(f"Starting size={img_size}x{img_size}")
-    img = svmbir.phantom.gen_shepp_logan(img_size,img_size)[np.newaxis]
-    angles = np.linspace(0,np.pi,num_angles)
-    t0 = time.time()
-    tomo = svmbir.project(img, angles, img_size,
-                          num_threads=num_threads,
-                          verbose=2,
-                          svmbir_lib_path='./svmbir_cache')
-    t = time.time() - t0
-    print(f"Finisehd: time={t}")
 
 def cache_system_matrix(img_size,num_angles):
 
@@ -43,12 +27,16 @@ def cache_system_matrix(img_size,num_angles):
                                                  num_rows=num_rows, num_cols=num_cols,
                                                  delta_channel=1.0, delta_pixel=1.0,
                                                  roi_radius=roi_radius,
-                                                 svmbir_lib_path='/global/cscratch1/sd/dperl/svmbir_cache2', object_name='object',
+                                                 object_name='object',
+                                                 svmbir_lib_path='/global/cscratch1/sd/dperl/svmbir_cache',
+                                                 object_name='object',
                                                  verbose=2)
 
 def sweep_test():
-    sizes = [40, 80, 160, 320, 640, 1280, 2560]
-    num_angles = [21, 41, 82, 164, 328, 656, 1313]
+    # Increasing img_size/num_angles increases cache file computation time 4x/2x, respectively (also increases cache file size)
+    # At img_size/num_angles = 2560/1313, cache file size = 33GB, takes ~13 min on my laptop, but very long time on NERSC (~ 2 hours?)
+    sizes = [40, 80, 160, 320, 640]#, 1280, 2560]
+    num_angles = [21, 41, 82, 164, 328]#, 656, 1313]
     t = np.zeros(len(sizes))
     for i,(sz,nang) in enumerate(zip(sizes,num_angles)):
         t0 = time.time()
@@ -59,11 +47,9 @@ def sweep_test():
         print(f"{sz}x{sz}-->{nang}x{sz}: {tt} sec")
 
 if __name__ == "__main__":
-    # parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser()
     # parser.add_argument("-s","--img_size",type=int,default=160)
     # parser.add_argument("-a","--num_angles",type=int,default=41)
-    # parser.add_argument("-n","--num_threads",type=int,default=1)
     # args = parser.parse_args()
-    # # run_projector(args.img_size,args.num_angles)
     # cache_system_matrix(args.img_size,args.num_angles)
     sweep_test()
